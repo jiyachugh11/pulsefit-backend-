@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PulseFit · Activity workspace</title>
+  <link rel="stylesheet" href="{{ url_for('static', path='style.css') }}">
+  <script defer src="{{ url_for('static', path='app.js') }}"></script>
+</head>
+<body>
+<aside class="sidebar">
+  <a class="brand" href="/"><span class="brand-icon">⌁</span> PulseFit<span class="brand-dot">.</span></a>
+  <p class="nav-label">YOUR WORKSPACE</p>
+  <nav aria-label="Dashboard sections">
+    {% for id, icon, title, store in [('users','01','Users','PostgreSQL'),('devices','02','Devices','PostgreSQL'),('challenges','03','Challenges','PostgreSQL'),('metadata','04','Device metadata','MongoDB'),('telemetry','05','Telemetry','Cassandra'),('social','06','Social graph','Neo4j'),('leaderboard','07','Leaderboard','Redis')] %}
+    <button type="button" class="nav-item {{ 'active' if loop.first else '' }}" data-tab="{{ id }}" aria-current="{{ 'page' if loop.first else 'false' }}"><span>{{ icon }}</span>{{ title }}</button>
+    {% endfor %}
+  </nav>
+  <div class="sidebar-note"><span class="small-dot"></span> DATABASE CASE STUDY<p>One connected experience.<br>Five purpose-built stores.</p><a href="/docs" target="_blank" rel="noopener">Explore API docs ↗</a></div>
+</aside>
+<main>
+  <header class="topbar"><span>Workspace <span class="slash">/</span> <strong id="breadcrumb">Users</strong></span><span class="project-tag">COLLEGE PROJECT <span>v1.0</span></span></header>
+  <div class="page-content">
+    <div class="page-heading"><div><p class="eyebrow">MOVE TOGETHER. BUILD BETTER.</p><h1>Your fitness, connected.</h1><p class="subtitle">Manage people, devices and activity in one place.</p></div><a class="docs-button" href="/docs" target="_blank" rel="noopener">API reference ↗</a></div>
+    <div class="store-grid" aria-label="Database responsibilities">
+      {% for label, description in [('PostgreSQL','People & registration'),('MongoDB','Flexible device profiles'),('Cassandra','Time-series readings'),('Neo4j','Social connections'),('Redis','Daily rankings')] %}
+      <div class="store-card"><span class="store-number">0{{ loop.index }}</span><strong>{{ label }}</strong><span>{{ description }}</span></div>
+      {% endfor %}
+    </div>
+    <div class="connection-strip"><span class="connection-label">SHARED IDENTITY</span><strong>Jiya <code>U101</code></strong><span class="arrow">→</span><strong>PulseBand X1 <code>PB101</code></strong><span class="connection-caption">The same IDs connect every store.</span></div>
+    <div id="notice" role="status" aria-live="polite" hidden></div>
+
+    {% for id, title, singular, description in [('users','Users','user','The people at the heart of PulseFit.'),('devices','Devices','device','Register wearables and connect them to their owners.'),('challenges','Challenges','challenge','Give your community a reason to keep moving.')] %}
+    <section id="{{ id }}" class="panel" {{ 'hidden' if not loop.first else '' }} aria-labelledby="{{ id }}-title">
+      <div class="section-heading"><div><h2 id="{{ id }}-title">{{ title }}</h2><p>{{ description }}</p></div><span class="badge">PostgreSQL</span></div>
+      <div class="workspace-grid"><article class="card"><h3 id="{{ id }}-form-title">Add {{ singular }}</h3>
+        <form id="{{ id }}-form" class="record-form" data-resource="{{ id }}">
+        <label>{{ singular | capitalize }} ID<input name="{{ singular }}_id" placeholder="{{ {'users':'U105','devices':'PB102','challenges':'CH102'}[id] }}" maxlength="20" pattern="[A-Za-z0-9_-]+" required></label>
+        {% if id == 'users' %}
+          <label>First name<input name="first_name" placeholder="First name" maxlength="100" required></label>
+          <label>Last name <span class="optional">optional</span><input name="last_name" placeholder="Last name" maxlength="100"></label>
+          <label>Email<input name="email" type="email" placeholder="name@example.com" maxlength="255" required></label>
+        {% elif id == 'devices' %}
+          <label>Owner's user ID<input name="user_id" value="U101" maxlength="20" required></label>
+          <label>Device type<input name="device_type" value="fitness band" maxlength="50" required></label>
+          <label>Brand<input name="brand" value="PulseFit" maxlength="100" required></label>
+          <label>Model<input name="model" placeholder="PulseBand X1" maxlength="100" required></label>
+        {% else %}
+          <label>Challenge name<input name="challenge_name" placeholder="Weekend walking challenge" maxlength="100" required></label>
+          <label>Start date<input name="start_date" type="date" required></label>
+          <label>End date<input name="end_date" type="date" required></label>
+        {% endif %}
+          <button class="primary" type="submit">Add {{ singular }}</button><button type="button" class="cancel-edit secondary" hidden>Cancel edit</button>
+        </form></article>
+        <article class="card list-card"><div class="card-heading"><h3>All {{ id }} <span class="count" id="{{ id }}-count">—</span></h3><button type="button" class="secondary refresh" data-resource="{{ id }}">Refresh ↻</button></div><div id="{{ id }}-table" class="table-wrap"><p class="empty">Loading records…</p></div></article>
+      </div>
+    </section>
+    {% endfor %}
+
+    <section id="metadata" class="panel" hidden aria-labelledby="metadata-title">
+      <div class="section-heading"><div><h2 id="metadata-title">Device metadata</h2><p>Flexible profiles for the sensors and settings of each wearable.</p></div><span class="badge">MongoDB</span></div>
+      <div class="workspace-grid"><article class="card"><h3>Find a device profile</h3><form id="metadata-find"><label>Device ID<input name="device_id" value="PB101" required></label><button class="primary">Load metadata</button></form><p class="helper">Create a device in PostgreSQL first. Optional fields, such as <code>ecg_enabled</code>, stay in MongoDB.</p></article>
+      <article class="card"><h3>Metadata editor</h3><form id="metadata-form"><label>JSON document<textarea id="metadata-json" rows="17" spellcheck="false" required>{
+  "device_id": "PB101",
+  "model": "PulseBand X1",
+  "schema_version": 1,
+  "sensors": ["heart_rate", "steps"],
+  "settings": {
+    "units": "metric",
+    "notifications": true
+  }
+}</textarea></label><div class="button-row"><button class="primary" name="action" value="POST">Create</button><button class="secondary" name="action" value="PUT">Update</button><button class="danger" name="action" value="DELETE">Delete</button></div></form><p class="helper">Update merges fields. Delete removes the entire device profile.</p></article></div>
+    </section>
+
+    <section id="telemetry" class="panel" hidden aria-labelledby="telemetry-title">
+      <div class="section-heading"><div><h2 id="telemetry-title">Telemetry</h2><p>A timeline of sensor readings, grouped by device and UTC day.</p></div><span class="badge">Cassandra</span></div>
+      <div class="workspace-grid"><article class="card"><h3>Add a reading</h3><form id="telemetry-form">
+        <label>Device ID<input name="device_id" value="PB101" required></label>
+        <label>Timestamp (UTC)<input name="reading_ts" type="datetime-local" step="1" value="{{ telemetry_day }}T10:01:00" required></label>
+        <div class="form-pair"><label>Heart rate · bpm<input name="heart_rate" type="number" min="0" max="300" value="80" required></label><label>Steps<input name="steps" type="number" min="0" max="2147483647" value="160" required></label></div>
+        <label>SpO₂ · %<input name="spo2" type="number" min="0" max="100" value="98" required></label>
+        <div class="form-pair"><label>Latitude<input name="latitude" type="number" step="any" min="-90" max="90" value="12.9718" required></label><label>Longitude<input name="longitude" type="number" step="any" min="-180" max="180" value="80.2208" required></label></div><button class="primary">Save reading</button>
+      </form><p class="helper">Saving the same device and timestamp replaces that reading, following Cassandra's upsert behavior.</p></article>
+      <article class="card list-card"><h3>Device timeline</h3><form id="telemetry-find" class="inline-form"><label>Device ID<input name="device_id" value="PB101" required></label><label>UTC date<input name="reading_date" type="date" value="{{ telemetry_day }}" required></label><button class="secondary">Load readings</button></form><div id="telemetry-table" class="table-wrap"><p class="empty">Choose a device and day to view readings.</p></div><p class="helper">Shows up to 200 readings, oldest first. The API supports a limit up to 1,000.</p></article></div>
+    </section>
+
+    <section id="social" class="panel" hidden aria-labelledby="social-title">
+      <div class="section-heading"><div><h2 id="social-title">Social graph</h2><p>Follow people. Discover connections through your community.</p></div><span class="badge">Neo4j</span></div>
+      <div class="workspace-grid"><article class="card"><h3>Manage a connection</h3><form id="social-form"><label>User ID<input name="user_id" value="U101" required></label><label>Follow target ID<input name="target_id" value="U102" required></label><div class="button-row"><button class="primary" name="action" value="POST">Follow</button><button class="danger" name="action" value="DELETE">Unfollow</button></div></form><p class="helper">Both IDs must be registered users. A follow creates any missing graph nodes.</p></article>
+      <article class="card list-card"><h3>Explore connections</h3><form id="social-find" class="inline-form"><label>User ID<input name="user_id" value="U101" required></label><button class="secondary">Explore</button></form><h4>Following</h4><div id="following-table" class="table-wrap"><p class="empty">Explore a user's connections.</p></div><h4>Recommended for you</h4><div id="recommendations-table" class="table-wrap"><p class="empty">Recommendations appear here.</p></div><p class="helper">Two hops away, excluding yourself and people already followed. Shared connections count distinct mutual follow targets.</p></article></div>
+    </section>
+
+    <section id="leaderboard" class="panel" hidden aria-labelledby="leaderboard-title">
+      <div class="section-heading"><div><h2 id="leaderboard-title">Leaderboard</h2><p>Every step counts. See how the community stacks up.</p></div><span class="badge">Redis</span></div>
+      <div class="workspace-grid"><article class="card"><h3>Update daily steps</h3><form id="leaderboard-form"><label>User ID<input name="user_id" value="U101" required></label><label>Day<input name="day" type="date" value="2026-10-11" required></label><label>Total steps<input name="steps" type="number" min="0" max="2147483647" value="25200" required></label><button class="primary">Update score</button></form><p class="helper">Enter a daily total. Scores are managed explicitly and are not summed from telemetry readings.</p></article>
+      <article class="card list-card"><h3>Daily rankings</h3><form id="leaderboard-find" class="inline-form"><label>Day<input name="day" type="date" value="2026-10-11" required></label><button class="secondary">Load rankings</button></form><div id="leaderboard-table" class="table-wrap"><p class="empty">Choose a day to view rankings.</p></div><p class="helper">Ranks start at 1. Equal scores use Redis's reverse lexicographic user ID ordering.</p></article></div>
+    </section>
+    <footer><span>PulseFit / Polyglot persistence</span><span>PostgreSQL · MongoDB · Cassandra · Neo4j · Redis</span></footer>
+  </div>
+</main>
+</body>
+</html>
+
