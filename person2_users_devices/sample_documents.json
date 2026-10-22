@@ -1,0 +1,17 @@
+[
+  {
+    "device_id": "PB101",
+    "model": "PulseBand X1",
+    "schema_version": 1,
+    "sensors": ["heart_rate", "steps"],
+    "settings": {"units": "metric", "notifications": true}
+  },
+  {
+    "device_id": "PW501",
+    "model": "PulseWatch Pro",
+    "schema_version": 2,
+    "sensors": ["heart_rate", "steps", "spo2", "ecg", "skin_temperature"],
+    "settings": {"units": "metric", "notifications": true},
+    "ecg_enabled": true
+  }
+]
